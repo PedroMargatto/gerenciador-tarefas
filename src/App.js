@@ -1,43 +1,69 @@
 import React, { useState, createContext, useContext } from 'react';
+import './App.css';
 
+/**
+ * Criação do Contexto Global (Context API)
+ * Utilizado para gerenciar o estado global da aplicação em conformidade
+ * com os requisitos da disciplina.
+ */
 const TarefasContext = createContext();
 
+/**
+ * Componente Provedor do Contexto (TarefasProvider)
+ * Responsável por armazenar o estado global das tarefas e disponibilizar
+ * as funções de manipulação para toda a árvore de componentes.
+ */
 export function TarefasProvider({ children }) {
+  // Estado global para armazenar a lista de tarefas da aplicação
   const [tarefas, setTarefas] = useState([]);
+  
+  // Estado global para controlar o filtro ativo ('todas', 'pendentes', 'concluidas')
   const [filtro, setFiltro] = useState('todas');
 
+  /**
+   * Função para adicionar uma nova tarefa à lista.
+   * Realiza validação de campos vazios e atualização imutável do estado.
+   */
   const adicionarTarefa = (texto) => {
     if (!texto.trim()) return;
-    const item = {
-      id: Date.now(),
+    const novaTarefaItem = {
+      id: Date.now(), // Identificador único baseado no timestamp atual
       texto: texto,
-      concluida: false,
+      concluida: false // Status inicial da tarefa como pendente
     };
-    setTarefas((tarefasAnteriores) => [...tarefasAnteriores, item]);
+    setTarefas((anteriores) => [...anteriores, novaTarefaItem]);
   };
 
+  /**
+   * Função para alternar o status de conclusão da tarefa (Check/Uncheck).
+   * Mapeia o array procurando pelo ID correspondente e inverte a propriedade 'concluida'.
+   */
   const alternarConcluida = (id) => {
-    setTarefas((tarefasAnteriores) =>
-      tarefasAnteriores.map((tarefa) =>
+    setTarefas((anteriores) =>
+      anteriores.map((tarefa) =>
         tarefa.id === id ? { ...tarefa, concluida: !tarefa.concluida } : tarefa
       )
     );
   };
 
+  /**
+   * Lógica de Filtragem Dinâmica das Tarefas.
+   * Retorna os itens de acordo com o filtro selecionado (todas, pendentes ou concluídas).
+   */
   const tarefasFiltradas = tarefas.filter((tarefa) => {
     if (filtro === 'pendentes') return !tarefa.concluida;
     if (filtro === 'concluidas') return tarefa.concluida;
-    return true;
+    return true; // Retorna todas se o filtro selecionado for 'todas'
   });
 
   return (
     <TarefasContext.Provider
       value={{
-        tarefas: tarefasFiltradas,
+        tarefasFiltradas,
         filtro,
         setFiltro,
         adicionarTarefa,
-        alternarConcluida,
+        alternarConcluida
       }}
     >
       {children}
@@ -45,109 +71,84 @@ export function TarefasProvider({ children }) {
   );
 }
 
-function useTarefas() {
+/**
+ * Hook customizado para facilitar o consumo do contexto nos componentes.
+ */
+export function useTarefas() {
   return useContext(TarefasContext);
 }
 
-function FormularioTarefa() {
-  const [texto, setTexto] = useState('');
-  const { adicionarTarefa } = useTarefas();
+/**
+ * Componente principal da interface do utilizador (UI).
+ */
+function AppContent() {
+  const { tarefasFiltradas, filtro, setFiltro, adicionarTarefa, alternarConcluida } = useTarefas();
+  const [textoInput, setTextoInput] = useState('');
 
+  // Manipulador do envio do formulário
   const handleSubmit = (e) => {
     e.preventDefault();
-    adicionarTarefa(texto);
-    setTexto('');
+    adicionarTarefa(textoInput);
+    setTextoInput(''); // Limpa o input após adicionar
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-      <input
-        type="text"
-        placeholder="Digite uma nova tarefa..."
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        style={{ flex: 1, padding: '10px', fontSize: '15px', borderRadius: '4px', border: '1px solid #ccc' }}
-      />
-      <button
-        type="submit"
-        style={{ padding: '10px 15px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-      >
-        Adicionar
-      </button>
-    </form>
-  );
-}
+    <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+      {/* Cabeçalho visível na tela com a Identificação do Aluno */}
+      <header style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <h1>Gerenciador de Tarefas</h1>
+        <p style={{ margin: 0, fontWeight: 'bold' }}>Pedro Margatto da Fonseca — RA: 1209966</p>
+      </header>
 
-function Filtros() {
-  const { filtro, setFiltro } = useTarefas();
+      {/* Formulário para adição de novas tarefas */}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <input
+          type="text"
+          placeholder="Digite uma nova tarefa..."
+          value={textoInput}
+          onChange={(e) => setTextoInput(e.target.value)}
+          style={{ flex: 1, padding: '8px' }}
+        />
+        <button type="submit">Adicionar</button>
+      </form>
 
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '15px' }}>
-      <button
-        onClick={() => setFiltro('todas')}
-        style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #007bff', backgroundColor: filtro === 'todas' ? '#007bff' : '#fff', color: filtro === 'todas' ? '#fff' : '#007bff', cursor: 'pointer' }}
-      >
-        Todas
-      </button>
-      <button
-        onClick={() => setFiltro('pendentes')}
-        style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #007bff', backgroundColor: filtro === 'pendentes' ? '#007bff' : '#fff', color: filtro === 'pendentes' ? '#fff' : '#007bff', cursor: 'pointer' }}
-      >
-        Pendentes
-      </button>
-      <button
-        onClick={() => setFiltro('concluidas')}
-        style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #007bff', backgroundColor: filtro === 'concluidas' ? '#007bff' : '#fff', color: filtro === 'concluidas' ? '#fff' : '#007bff', cursor: 'pointer' }}
-      >
-        Concluídas
-      </button>
+      {/* Botões de filtragem de status */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
+        <button onClick={() => setFiltro('todas')} style={{ fontWeight: filtro === 'todas' ? 'bold' : 'normal' }}>Todas</button>
+        <button onClick={() => setFiltro('pendentes')} style={{ fontWeight: filtro === 'pendentes' ? 'bold' : 'normal' }}>Pendentes</button>
+        <button onClick={() => setFiltro('concluidas')} style={{ fontWeight: filtro === 'concluidas' ? 'bold' : 'normal' }}>Concluídas</button>
+      </div>
+
+      {/* Listagem de tarefas filtradas */}
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {tarefasFiltradas.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#666' }}>Nenhuma tarefa encontrada.</p>
+        ) : (
+          tarefasFiltradas.map((tarefa) => (
+            <li key={tarefa.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <input
+                type="checkbox"
+                checked={tarefa.concluida}
+                onChange={() => alternarConcluida(tarefa.id)}
+              />
+              <span style={{ textDecoration: tarefa.concluida ? 'line-through' : 'none', color: tarefa.concluida ? '#888' : '#000' }}>
+                {tarefa.texto}
+              </span>
+            </li>
+          ))
+        )}
+      </ul>
     </div>
   );
 }
 
-function Tarefa({ tarefa }) {
-  const { alternarConcluida } = useTarefas();
-
-  return (
-    <li style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderBottom: '1px solid #eee' }}>
-      <input
-        type="checkbox"
-        checked={tarefa.concluida}
-        onChange={() => alternarConcluida(tarefa.id)}
-        style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-      />
-      <span style={{ textDecoration: tarefa.concluida ? 'line-through' : 'none', color: tarefa.concluida ? '#888' : '#333', fontSize: '16px' }}>
-        {tarefa.texto}
-      </span>
-    </li>
-  );
-}
-
-function ListaDeTarefas() {
-  const { tarefas } = useTarefas();
-
-  if (tarefas.length === 0) {
-    return <p style={{ textAlign: 'center', color: '#777', marginTop: '20px' }}>Nenhuma tarefa encontrada.</p>;
-  }
-
-  return (
-    <ul style={{ listStyle: 'none', padding: 0, marginTop: '15px' }}>
-      {tarefas.map((tarefa) => (
-        <Tarefa key={tarefa.id} tarefa={tarefa} />
-      ))}
-    </ul>
-  );
-}
-
+/**
+ * Componente raiz que envolve a aplicação com o Provedor do Contexto.
+ */
 export default function App() {
   return (
     <TarefasProvider>
-      <div style={{ maxWidth: '450px', margin: '40px auto', padding: '25px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', backgroundColor: '#fff', fontFamily: 'Arial, sans-serif' }}>
-        <h2 style={{ textAlign: 'center', color: '#2c3e50', marginBottom: '20px' }}>Gerenciador de Tarefas</h2>
-        <FormularioTarefa />
-        <Filtros />
-        <ListaDeTarefas />
-      </div>
+      <AppContent />
     </TarefasProvider>
   );
 }
